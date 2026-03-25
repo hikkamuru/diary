@@ -1,12 +1,11 @@
 import asyncio
 import logging
 import os
-import subprocess
+import aiohttp
 from datetime import datetime
-from io import BytesIO
 from pathlib import Path
 
-import speech_recognition as sr
+import requests
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -18,58 +17,48 @@ from database import db
 router = Router()
 logger = logging.getLogger(__name__)
 
-FFMPEG_PATH = r"C:\Users\User\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1-full_build\bin\ffmpeg.exe"
-
 
 class DiaryStates(StatesGroup):
     waiting_for_text = State()
 
 
-async def recognize_speech(file_bytes: bytes) -> str:
-    recognizer = sr.Recognizer()
-    
-    with sr.AudioFile(BytesIO(file_bytes)) as source:
-        audio_data = recognizer.record(source)
-    
+async def recognize_voice_yandex(file_path: Path) -> str:
     try:
-        text = recognizer.recognize_google(audio_data, language="ru-RU")
-        return text
-    except sr.UnknownValueError:
-        return "Не удалось распознать речь"
-    except sr.RequestError as e:
-        logger.error(f"Speech recognition error: {e}")
-        return "Ошибка сервиса распознавания"
+        import config
+        api_key = config.YANDEX_API_KEY
+        
+        if not api_key:
+            logger.warning("Yandex API key not set")
+            return None
+        
+        with open(file_path, "rb") as audio_file:
+            audio_data = audio_file.read()
+        
+        url = "https://stt.api.cloud.yandex.net/speech/v1/stt:recognize"
+        headers = {"Authorization": f"Api-Key {api_key}"}
+        
+        response = requests.post(url, headers=headers, data=audio_data)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get("result"):
+                return result["result"]
+            return "Не удалось распознать речь"
+        else:
+            logger.error(f"Yandex API error: {response.text}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Voice recognition error: {e}")
+        return None
 
 
 async def recognize_voice_file(file_path: Path) -> str:
-    wav_path = file_path.with_suffix('.wav')
+    result = await recognize_voice_yandex(file_path)
+    if result:
+        return result
     
-    try:
-        subprocess.run([
-            FFMPEG_PATH, '-i', str(file_path), 
-            '-acodec', 'pcm_s16le', '-ar', '16000', 
-            '-ac', '1', str(wav_path)
-        ], check=True, capture_output=True)
-    except subprocess.CalledProcessError as e:
-        logger.error(f"FFmpeg error: {e}")
-        return "Ошибка конвертации аудио"
-    
-    recognizer = sr.Recognizer()
-    
-    with sr.AudioFile(str(wav_path)) as source:
-        audio_data = recognizer.record(source)
-    
-    try:
-        text = recognizer.recognize_google(audio_data, language="ru-RU")
-        return text
-    except sr.UnknownValueError:
-        return "Не удалось распознать речь"
-    except sr.RequestError as e:
-        logger.error(f"Speech recognition error: {e}")
-        return "Ошибка сервиса распознавания"
-    finally:
-        if wav_path.exists():
-            wav_path.unlink()
+    return "Настрой Yandex SpeechKit для распознавания голоса"
 
 
 main_keyboard = ReplyKeyboardMarkup(

@@ -1,3 +1,2 @@
 aiogram>=3.0.0
-speechrecognition>=3.8.0
-pydub>=0.25.0
+requests>=2.28.0
