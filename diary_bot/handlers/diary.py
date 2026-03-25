@@ -27,6 +27,8 @@ async def recognize_voice_yandex(file_path: Path) -> str:
         import config
         api_key = config.YANDEX_API_KEY
         
+        logger.info(f"Yandex API key: {api_key[:10]}..." if api_key else "No API key")
+        
         if not api_key:
             logger.warning("Yandex API key not set")
             return None
@@ -38,6 +40,8 @@ async def recognize_voice_yandex(file_path: Path) -> str:
         headers = {"Authorization": f"Api-Key {api_key}"}
         
         response = requests.post(url, headers=headers, data=audio_data)
+        
+        logger.info(f"Yandex response: {response.status_code} - {response.text[:200]}")
         
         if response.status_code == 200:
             result = response.json()
