@@ -42,30 +42,7 @@ async def recognize_voice_yandex(file_path: Path) -> str:
         
         response = requests.post(url, headers=headers, data=audio_data)
         
-        logger.info(f"Yandex response: {response.status_code} - {response.text[:200]}")
-        
-        if response.status_code == 200:
-            result = response.json()
-            if result.get("result"):
-                return result["result"]
-            return "Не удалось распознать речь"
-        else:
-            logger.error(f"Yandex API error: {response.text}")
-            return None
-            
-    except Exception as e:
-        logger.error(f"Voice recognition error: {e}")
-        return None
-        
-        with open(file_path, "rb") as audio_file:
-            audio_data = audio_file.read()
-        
-        url = "https://stt.api.cloud.yandex.net/speech/v1/stt:recognize?folderId=b1ga809ft9fcnfvjph1g"
-        headers = {"Authorization": f"Api-Key {api_key}"}
-        
-        response = requests.post(url, headers=headers, data=audio_data)
-        
-        logger.info(f"Yandex response: {response.status_code} - {response.text[:200]}")
+        logger.info(f"Yandex response: {response.status_code} - {response.text}")
         
         if response.status_code == 200:
             result = response.json()
