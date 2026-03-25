@@ -34,7 +34,7 @@ async def recognize_voice_yandex(file_path: Path) -> str:
         with open(file_path, "rb") as audio_file:
             audio_data = audio_file.read()
         
-        url = "https://stt.api.cloud.yandex.net/speech/v1/stt:recognize"
+        url = "https://transcribe.api.cloud.yandex.net/speech/v1/recognize"
         headers = {"Authorization": f"Api-Key {api_key}"}
         
         response = requests.post(url, headers=headers, data=audio_data)
